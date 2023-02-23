@@ -21,23 +21,17 @@ class CustomDataset(Dataset):
         with open(os.path.join(self.data_root, self.data_file), 'r') as f:
             for line in f:
                 line = line.strip('\n').rstrip().split()
-                # set the label as one if the dataset has no groundtruth
-                if len(line) == 1:
-                    data_infos = dict(
-                        filename = line[0],
-                        label = -1
-                    )
-                elif len(line) == 2:
+                if len(line) == 2:
                     data_infos = dict(
                         filename = line[0],
                         label = int(line[1])
                     )
                 else:
-                    assert NotImplementedError
+                    raise NotImplementedError
     
     def _get_data(self, data_info):
         data = dict(
-            img = cv2.imread(data_info['imgname']),
+            img = cv2.imread(data_info['filename']),
             label = np.ones((1,)).astype(np.int64) * data_info['label']
         )
 
