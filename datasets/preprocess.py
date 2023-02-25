@@ -28,6 +28,11 @@ class Preprocess(object):
         return data
     
 class Normalize(object):
+    """Normalize an image.
+
+    Args:
+        mean (tuple), std (tuple), to_rgb (bool)
+    """
     def __init__(self,
                  mean=(0, 0, 0),
                  std=(1, 1, 1),
@@ -46,6 +51,12 @@ class Normalize(object):
         return data
     
 class Resize(object):
+    """Resize an image.
+
+    Args:
+        scale (tuple): The target size of scale
+    """
+
     def __init__(self,
                  scale):
         self.scale = scale
@@ -58,6 +69,13 @@ class Resize(object):
         return data
     
 class RandomFlip(object):
+    """Randomly flip an image.
+
+    Args:
+        hflip_ratio (float): The probability of flip an image horizontally.
+        vflip_ratio (float): The probability of flip an image vertically.
+    """
+
     def __init__(self,
                  hflip_ratio=0,
                  vflip_ratio=0):
@@ -82,6 +100,13 @@ class RandomFlip(object):
         return data
 
 class RandomRotate(object):
+    """Randomly roate an image.
+
+    Args:
+        rotate_ratio (float): The probobility to rotate an image.
+        max_angle (int): Max angle of rotating an image.
+    """
+
     def __init__(self,
                  max_angle=10,
                  rotate_ratio=0.0):
@@ -98,6 +123,13 @@ class RandomRotate(object):
         return data
     
 class RandomCrop(object):
+    """Randomly applies crop to an image.
+
+    Args:
+        crop_ratio (float): The probability of applying crop blur.
+        crop_range (tuple): The range of crop an image.
+    """
+
     def __init__(self,
                  crop_ratio=0.0,
                  crop_range=(0.1, 0.1)):
@@ -152,11 +184,13 @@ class RandomErase(object):
 
 class RandomGuassian(object):
     """Random add Guassian noise to an image
+
     Args:
-        guassian_ratio (float): random add probability.
-        guassian_mean (float): mean of gaussian.
-        guassian_std (float): standard deviation of gaussian.
+        guassian_ratio (float): Random add probability.
+        guassian_mean (float): Mean of gaussian.
+        guassian_std (float): Standard deviation of gaussian.
     """
+
     def __init__(self,
                  guassian_ratio=0.0,
                  guassian_mean=0.0,
@@ -174,11 +208,13 @@ class RandomGuassian(object):
 
 class RandomMotionBlur(object):
     """Randomly applies motion blur to an image.
+
     Args:
         motion_blur_ratio (float): The probability of applying motion blur.
         kernel_size (tuple): The size of the motion blur kernel.
-        angle(int): The angle degree
+        angle(int): The angle degree.
     """
+
     def __init__(self, motion_blur_ratio=0.0, kernel_size=(5,20), angle=90):
         self.motion_blur_ratio = motion_blur_ratio
         self.kernel_size = kernel_size
@@ -196,6 +232,13 @@ class RandomMotionBlur(object):
         return data
     
 class RandomZoomInOut(object):
+    """Randomly applies zoom-in and zoom-out to an image.
+
+    Args:
+        zoom_ratio (float): The probability of applying zoom-in and zoom-out.
+        zoom_range (tuple): The range of zoom range.
+    """
+
     def __init__(self, zoom_ratio=0.0, zoom_range=(112, 224)):
         self.zoom_ratio = zoom_ratio
         self.zoom_range = zoom_range
@@ -211,11 +254,13 @@ class RandomZoomInOut(object):
     
 class RandomBokehBlur(object):
     """Randomly applies bokeh-like blur to an image.
+
     Args:
         bokeh_blur_ratio (float): The probability of applying bokeh-like blur.
         kernel_size (int): The size of the bokeh kernel.
-        weights (float): The alpha / beta weights in cv2.addWeighted
+        weights (float): The alpha / beta weights in cv2.addWeighted.
     """
+
     def __init__(self, bokeh_blur_ratio=0.0, kernel_size=(5, 20), weights=(1.5, -0.5)):
         self.bokeh_blur_ratio = bokeh_blur_ratio
         self.kernel_size = kernel_size
