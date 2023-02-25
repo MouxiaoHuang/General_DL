@@ -11,9 +11,8 @@ from .evaluator import Metric
 from .visualizer import VisualizeLog, VisualizeTSNE
 from .builder import build_optimizers, build_schedulers, build_dataloaders
 
-import sys
-sys.path.append('../')
-from datasets.tta_transform import TTATransforms
+# import sys
+# sys.path.append('../')
 
 
 class Runner(object):
@@ -81,20 +80,6 @@ class Runner(object):
         self.dataloader = None
         self.val_dataloader = None
         self.test_dataloader = None
-
-        try:
-            if self.test_cfg['tta_pipeline'] is not None:
-                self.tta_pipeline = self.test_cfg['tta_pipeline']
-        except:
-            self.tta_pipeline = None
-
-
-    def _tta_func(self, image, model):
-        image_flip = torch.flip(image, dims=[3])
-        output = model(image)
-        output_flip = model(image_flip)
-        final_output = (output + output_flip) / 2
-        return final_output
 
     def _lr_step(self):
         """update learning rate"""
@@ -231,9 +216,7 @@ class Runner(object):
         self.model.train()
         preds = np.concatenate(preds)
         labels = np.concatenate(labels)
-        # score, eval_dict = self.metric(preds, labels)
-        score, eval_dict = self.metric(preds[:89276], labels[:89276])
-        score, eval_dict = self.metric(preds[89276:], labels[89276:], thr=self.metric.thr)
+        score, eval_dict = self.metric(preds, labels)
         if len(feats) > 0:
             feats = np.concatenate(feats)
             self.writer_log.add_embeddings(tag='feature', mat=feats, metadata=labels.astype(str))
@@ -250,33 +233,19 @@ class Runner(object):
         preds = list()
         labels = list()
         self.model.eval()
-        if self.tta_pipeline is not None:
-            for data in tqdm(dataloader):
-                output = self.model(data['img'], data['label'])
-                tta_data = TTATransforms(dict(RandomFlip=dict(hflip_ratio=1.0)))(data)
-                tta_output = self.model(tta_data, data['label'])
-                # data input to original Transforms: [h, w, c], TTATransforms: [bz, c, h, w]
-                # data in dataloader: [bz, c, h, w]
-                # data input to self.model: [bz, c, h, w]
-
-                output0 = (output[0] + tta_output[0]) / 2
-                output1 = output[1]
-                preds.append(output0.detach().cpu().numpy())
-                labels.append(output1.detach().cpu().numpy()[:, 0])
-        else:
-            for data in tqdm(dataloader):
-                # output = self.model(**data)
-                output = self.model(data['img'], data['label'])
-                preds.append(output[0].detach().cpu().numpy())
-                labels.append(output[1].detach().cpu().numpy()[:, 0])
-                if len(output) > 2:
-                    feats.append(output[2].detach().cpu().numpy())
+        for data in tqdm(dataloader):
+            # output = self.model(**data)
+            output = self.model(data['img'], data['label'])
+            preds.append(output[0].detach().cpu().numpy())
+            labels.append(output[1].detach().cpu().numpy()[:, 0])
+            if len(output) > 2:
+                feats.append(output[2].detach().cpu().numpy())
         self.model.train()
         preds = np.concatenate(preds)
         labels = np.concatenate(labels)
         if len(feats) > 0:
             feats = np.concatenate(feats)
-            torch.save(feats, 'var_rts_dev.pth')
+            torch.save(feats, 'feats.pth')
             if self.eval_cfg.tsne_cfg is not None:
                 self.vis_tsne(feats, labels)
         self.metric(preds, labels, filename=filename, log_info=log_info)

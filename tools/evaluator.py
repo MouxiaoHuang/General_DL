@@ -144,8 +144,7 @@ class Metric(object):
                 thr = self._get_thr(preds, labels)
 
             self._acc = ((preds < thr) == labels).sum() / len(preds)
-            # self._acer, self._apcer, self._bpcer = self._eval_acer(preds, labels, thr)
-            self._acer, self._apcer, self._bpcer = self._eval_acer(preds, labels, self.thr)
+            self._acer, self._apcer, self._bpcer = self._eval_acer(preds, labels, thr)
 
             pos_num = (labels == 0).sum()
             if pos_num != len(labels) and pos_num != 0:
