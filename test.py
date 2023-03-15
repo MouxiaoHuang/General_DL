@@ -4,7 +4,7 @@ import torch
 import argparse
 from torch.nn.parallel import DataParallel
 from utils import Config, get_root_logger, seed_everywhere
-from tools import Runner, build_models, build_datasets, build_dataloaders
+from apis import Runner, build_models, build_datasets, build_dataloaders
 
 
 def parse_args():

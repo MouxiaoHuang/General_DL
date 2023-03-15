@@ -6,23 +6,23 @@ from utils.fileio import load, dump
 
 
 class Metric(object):
-    """Metric tools for binary classification results.
+    """Metric tools for multi / binary classification results.
 
     Args:
         logger (logger): the logger for train/test.
-        work_dir (str): work dir to log file or result file.
+        exp_dir (str): work dir to log file or result file.
         eval_cfg (dict): the config dict of evaluation.
     """
 
     def __init__(self,
                  logger,
-                 work_dir=None,
+                 exp_dir=None,
                  eval_cfg=None):
         self.logger = logger
         self.eval_cfg = eval_cfg
-        self.work_dir = os.path.join(work_dir, 'results')
+        self.exp_dir = os.path.join(exp_dir, 'results')
         self.score_type = eval_cfg.pop('score_type', 'acc')
-        os.makedirs(self.work_dir, exist_ok=True)
+        os.makedirs(self.exp_dir, exist_ok=True)
 
         self._apcer = 1.0
         self._bpcer = 1.0
@@ -80,7 +80,7 @@ class Metric(object):
         plt.legend(loc='lower right')
         plt.ylabel('Ture Reject Rate')
         plt.xlabel('False Reject Rate (Log@10)')
-        plt.savefig(os.path.join(self.work_dir, 'roc.png'))
+        plt.savefig(os.path.join(self.exp_dir, 'roc.png'))
 
     def _get_thr(self, preds, labels):
         """get best thr"""
@@ -136,7 +136,7 @@ class Metric(object):
 
         self.thr = self._get_thr(preds, labels) if thr is None else thr
 
-        # ###############
+        # ############### for multiclassification
         if preds.max() > 1:
             self._acc = (preds == labels).sum() / len(preds)
         else:
@@ -158,7 +158,7 @@ class Metric(object):
 
         if filename is not None:
             result = np.hstack((preds[:, np.newaxis], labels[:, np.newaxis]))
-            dump(result, os.path.join(self.work_dir, filename))
+            dump(result, os.path.join(self.exp_dir, filename))
 
         if log_info:
             self._log_infos()

@@ -4,8 +4,6 @@ from tkinter.messagebox import NO
 import torch
 import numpy as np
 from tqdm import tqdm
-import datasets
-from datasets.transform import RandomFlip
 from visualdl import LogWriter
 from .evaluator import Metric
 from .visualizer import VisualizeLog, VisualizeTSNE
@@ -21,7 +19,7 @@ class Runner(object):
     Args:
         model (nn.Module): the model to train/test.
         logger (logger): the logger for train/test.
-        work_dir (str): work dir to save checkpoint or log file.
+        exp_dir (str): work dir to save checkpoint or log file.
         eval_cfg (dict): the config dict of evaluation.
         optim_cfg (dict): the config dict of optimizer.
         sched_cfg (dict): the config dict of learning rate schedule.
@@ -30,14 +28,14 @@ class Runner(object):
     def __init__(self,
                  model,
                  logger,
-                 work_dir,
+                 exp_dir,
                  log_cfg=None,
                  test_cfg=None,
                  eval_cfg=None,
                  optim_cfg=None,
                  sched_cfg=None,
                  check_cfg=None):
-        assert isinstance(work_dir, str)
+        assert isinstance(exp_dir, str)
         self.model = model
         self.logger = logger
         self.log_cfg = log_cfg
@@ -46,7 +44,7 @@ class Runner(object):
         self.optim_cfg = optim_cfg
         self.sched_cfg = sched_cfg
         self.check_cfg = check_cfg
-        self.work_dir = os.path.abspath(work_dir)
+        self.exp_dir = os.path.abspath(exp_dir)
         self._total_epoch = 0
         self._total_iter = 0
         self._iter_time = 0
@@ -55,15 +53,15 @@ class Runner(object):
         self._eta = 0
         self._lr = 0
 
-        os.makedirs(os.path.expanduser(self.work_dir), exist_ok=True)
+        os.makedirs(os.path.expanduser(self.exp_dir), exist_ok=True)
 
         if self.optim_cfg is not None:
             self._warmup = self.sched_cfg.pop('warmup', 0)
             self.optimizer = build_optimizers(self.optim_cfg, self.model)
             self.scheduler = build_schedulers(self.sched_cfg, self.optimizer)
             if self.log_cfg.plog_cfg is not None:
-                self.vis_log = VisualizeLog(self.work_dir, self.log_cfg.plog_cfg)
-                self.writer_log = LogWriter(logdir=self.work_dir)
+                self.vis_log = VisualizeLog(self.exp_dir, self.log_cfg.plog_cfg)
+                self.writer_log = LogWriter(logdir=self.exp_dir)
                 hparm_cfg = self.log_cfg.plog_cfg.pop('hparm_cfg', None)
                 if hparm_cfg is not None:
                     self.writer_log.add_hparams(
@@ -72,10 +70,10 @@ class Runner(object):
 
         self._score = np.zeros((self.check_cfg.pop('save_topk', 1),), dtype=np.float32)
         self._init_model(self.check_cfg.resume_from, self.check_cfg.load_from)
-        self.metric = Metric(logger, self.work_dir, eval_cfg)
+        self.metric = Metric(logger, self.exp_dir, eval_cfg)
 
         if self.eval_cfg.tsne_cfg is not None:
-            self.vis_tsne = VisualizeTSNE(self.work_dir, self.eval_cfg.tsne_cfg)
+            self.vis_tsne = VisualizeTSNE(self.exp_dir, self.eval_cfg.tsne_cfg)
 
         self.dataloader = None
         self.val_dataloader = None
@@ -133,17 +131,17 @@ class Runner(object):
                 return
             for k in range(len(self._score)):
                 if score >= self._score[k]:
-                    filename = os.path.join(self.work_dir, f'top{k + 1}_model.pth')
+                    filename = os.path.join(self.exp_dir, f'top{k + 1}_model.pth')
                     if os.path.exists(filename) and k < len(self._score) - 1:
                         self._score[k + 1] = self._score[k]
-                        filename_next = os.path.join(self.work_dir, f'top{k + 2}_model.pth')
+                        filename_next = os.path.join(self.exp_dir, f'top{k + 2}_model.pth')
                         os.system(f'mv {filename} {filename_next}')
                     self._score[k] = score
                     break
         elif filename is None:
-            filename = os.path.join(self.work_dir, f'epoch{self._epoch}_iter{self._iter}.pth')
+            filename = os.path.join(self.exp_dir, f'epoch{self._epoch}_iter{self._iter}.pth')
         else:
-            filename = os.path.join(self.work_dir, filename)
+            filename = os.path.join(self.exp_dir, filename)
         checkpoint = dict(
             iter=self._iter,
             epoch=self._epoch,
@@ -209,7 +207,7 @@ class Runner(object):
         self.model.eval()
         for data in tqdm(self.val_dataloader):
             output = self.model(**data)
-            preds.append(output[0].detach().cpu().numpy())
+            preds.append(output[0].argmax(dim=-1).detach().cpu().numpy())
             labels.append(output[1].detach().cpu().numpy()[:, 0])
             if len(output) > 2:
                 feats.append(output[2].detach().cpu().numpy())
@@ -234,9 +232,8 @@ class Runner(object):
         labels = list()
         self.model.eval()
         for data in tqdm(dataloader):
-            # output = self.model(**data)
             output = self.model(data['img'], data['label'])
-            preds.append(output[0].detach().cpu().numpy())
+            preds.append(output[0].argmax(dim=-1).detach().cpu().numpy())
             labels.append(output[1].detach().cpu().numpy()[:, 0])
             if len(output) > 2:
                 feats.append(output[2].detach().cpu().numpy())

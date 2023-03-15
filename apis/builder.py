@@ -3,7 +3,7 @@ import torch
 import warnings
 import torch.optim as opt
 import torch.optim.lr_scheduler as lrs
-import models.fas as fas
+import models.model as model
 import datasets as ds
 from torch.utils.data import DataLoader
 from .sampler import BalanceSampler, DistBalanceSampler, SwitchSampler
@@ -20,7 +20,7 @@ def build_models(cfg, **kwargs):
         raise TypeError('cfg must be a dict')
     cfg_ = cfg.copy()
     model_type = cfg_.pop('type')
-    model = eval(f'fas.{model_type}')(**cfg_, **kwargs)
+    model = eval(f'model.{model_type}')(**cfg_, **kwargs)
     return model
 
 
@@ -55,8 +55,6 @@ def build_dataloaders(cfg, dataset, num_replicas=None, rank=None, **kwargs):
     sampler = None
     distributed = num_replicas is not None and rank is not None
     if cfg_.pop('shuffle', False):
-        if dataset.test_mode:
-            warnings.warn('Using BalanceSampler when test mode is True.')
         if distributed:
             sampler = DistBalanceSampler(dataset, num_replicas, rank)
         else:

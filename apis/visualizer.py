@@ -9,17 +9,17 @@ class VisualizeTSNE(object):
     """Visualize TSNE for features.
 
     Args:
-        work_dir (str): work dir to log file or result file.
+        exp_dir (str): work dir to log file or result file.
         tsne_cfg (dict): the config dict of tsne.
         figsize (tuple): figure size to draw.
     """
     def __init__(self,
-                 work_dir,
+                 exp_dir,
                  tsne_cfg=None,
                  figsize=(10, 10)):
         self.eval_cfg = tsne_cfg
-        self.work_dir = os.path.join(work_dir, 'results')
-        os.makedirs(self.work_dir, exist_ok=True)
+        self.exp_dir = os.path.join(exp_dir, 'results')
+        os.makedirs(self.exp_dir, exist_ok=True)
 
         self.marks = tsne_cfg.pop('marks', None)
         self.filename = tsne_cfg.pop('filename', 'tsne.png')
@@ -51,21 +51,21 @@ class VisualizeTSNE(object):
                 ax.scatter(posi[:, 0], posi[:, 1], **self.marks[i])
         ax.legend(prop=dict(size=14))
         plt.tick_params(labelsize=15)
-        plt.savefig(os.path.join(self.work_dir, self.filename))
+        plt.savefig(os.path.join(self.exp_dir, self.filename))
 
 
 class VisualizeLog(object):
     """Visualize train logs.
 
     Args:
-        work_dir (str): work dir to log file or result file.
+        exp_dir (str): work dir to log file or result file.
         figsize (tuple): figure size to draw.
         eval_types (str, list): eval types to plot.
         loss_types (list, optional): loss types to plot.
 
     """
     def __init__(self,
-                 work_dir,
+                 exp_dir,
                  plog_cfg=None,
                  figsize=(15, 10)):
         self.figsize = figsize
@@ -75,8 +75,8 @@ class VisualizeLog(object):
         if not isinstance(self.eval_types, list):
             self.eval_types = [self.eval_types]
 
-        self.work_dir = os.path.join(work_dir, 'results')
-        os.makedirs(self.work_dir, exist_ok=True)
+        self.exp_dir = os.path.join(exp_dir, 'results')
+        os.makedirs(self.exp_dir, exist_ok=True)
 
         self.colors = ['r', 'g', 'b', 'y', 'c', 'm']
         self.eval_names = ['acc', 'auc', 'acer', 'apcer', 'bpcer',
@@ -135,7 +135,7 @@ class VisualizeLog(object):
         plt.legend(loc='lower right')
         plt.ylabel('Eval Score')
         plt.xlabel('Iters')
-        plt.savefig(os.path.join(self.work_dir, f'{name}_eval.png'))
+        plt.savefig(os.path.join(self.exp_dir, f'{name}_eval.png'))
 
         if self.loss_types is None:
             return
@@ -150,4 +150,4 @@ class VisualizeLog(object):
         plt.legend(loc='upper right')
         plt.ylabel('Loss')
         plt.xlabel('Iters')
-        plt.savefig(os.path.join(self.work_dir, f'{name}_loss.png'))
+        plt.savefig(os.path.join(self.exp_dir, f'{name}_loss.png'))

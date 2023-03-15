@@ -18,9 +18,9 @@ class Preprocess(object):
             else:
                 raise NotImplementedError
         if 'Resize' in pipeline:
-            self.transforms.append(Resize(**pipeline['Resize']))
+            self.preprocess.append(Resize(**pipeline['Resize']))
         if 'Normalize' in pipeline:
-            self.transforms.append(Normalize(**pipeline['Normalize']))
+            self.preprocess.append(Normalize(**pipeline['Normalize']))
     
     def __call__(self, data):
         for process in self.preprocess:

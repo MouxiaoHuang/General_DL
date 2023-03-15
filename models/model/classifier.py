@@ -36,13 +36,13 @@ class Classifier(nn.Module):
         loss = loss_cls
         return dict(loss_cls=loss_cls, loss=loss)
 
-    def forward(self, img, label=None, domain=None):
+    def forward(self, img, label=None):
         """forward"""
         feat = self.encoder(img) # [bz, num_classes], logits
         if self.training:
             return self._get_losses(feat, label)
         else:
-            pred = F.softmax(feat, dim=1)[:, 0]
+            pred = feat
             output = [pred]
             if self.return_label:
                 output.append(label)

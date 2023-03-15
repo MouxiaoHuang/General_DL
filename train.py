@@ -3,7 +3,7 @@ import time
 import torch
 import argparse
 from torch.nn.parallel import DataParallel, DistributedDataParallel
-from tools import Runner, build_models, build_datasets, build_dataloaders
+from apis import Runner, build_models, build_datasets, build_dataloaders
 from utils import Config, get_root_logger, seed_everywhere, init_distributed, get_rank, get_world_size
 
 
@@ -50,7 +50,6 @@ def main():
     cfg.data.train_loader.num_gpus = args.gpus
 
     os.makedirs(os.path.expanduser(os.path.abspath(cfg.exp_dir)), exist_ok=True)
-    cfg.dump(os.path.join(cfg.exp_dir, os.path.basename(args.config)))
 
     timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
     log_file = os.path.join(cfg.exp_dir, f'{timestamp}.log')
@@ -71,7 +70,9 @@ def main():
         dataloader = build_dataloaders(cfg.data.train_loader, dataset)
 
     logger.info(f'Distributed training: {args.distributed}')
-    logger.info(f'Train dataset: {dataset.groups}')
+    logger.info(f'Train dataset class number:{len(dataset.groups)}')
+    if len(dataset.groups) < 10:
+        logger.info(f'Train dataset: {dataset.groups}')
 
     runner = Runner(
         model,
@@ -86,7 +87,9 @@ def main():
     if cfg.eval_cfg is not None:
         val_dataset = build_datasets(cfg.data.val)
         val_dataloader = build_dataloaders(cfg.data.test_loader, val_dataset)
-        logger.info(f'Val dataset: {val_dataset.groups}')
+        logger.info(f'Val dataset class number:{len(val_dataset.groups)}')
+        if len(val_dataset.groups) < 10:
+            logger.info(f'Val dataset: {val_dataset.groups}')
 
         runner.val_dataloader = val_dataloader
 
