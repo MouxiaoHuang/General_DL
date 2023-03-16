@@ -70,8 +70,8 @@ def main():
         dataloader = build_dataloaders(cfg.data.train_loader, dataset)
 
     logger.info(f'Distributed training: {args.distributed}')
-    logger.info(f'Train dataset class number:{len(dataset.groups)}')
-    if len(dataset.groups) < 10:
+    logger.info(f'Train dataset class number: {len(dataset.groups)}')
+    if len(dataset.groups) <= 10:
         logger.info(f'Train dataset: {dataset.groups}')
 
     runner = Runner(
@@ -87,8 +87,8 @@ def main():
     if cfg.eval_cfg is not None:
         val_dataset = build_datasets(cfg.data.val)
         val_dataloader = build_dataloaders(cfg.data.test_loader, val_dataset)
-        logger.info(f'Val dataset class number:{len(val_dataset.groups)}')
-        if len(val_dataset.groups) < 10:
+        logger.info(f'Val dataset class number: {len(val_dataset.groups)}')
+        if len(val_dataset.groups) <= 10:
             logger.info(f'Val dataset: {val_dataset.groups}')
 
         runner.val_dataloader = val_dataloader

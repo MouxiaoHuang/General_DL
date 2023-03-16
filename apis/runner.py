@@ -242,7 +242,6 @@ class Runner(object):
         labels = np.concatenate(labels)
         if len(feats) > 0:
             feats = np.concatenate(feats)
-            torch.save(feats, 'feats.pth')
             if self.eval_cfg.tsne_cfg is not None:
                 self.vis_tsne(feats, labels)
         self.metric(preds, labels, filename=filename, log_info=log_info)
@@ -329,4 +328,3 @@ class Runner(object):
             self._save_model(filename='latest.pth')
 
         self.logger.info('End of step training!')
-

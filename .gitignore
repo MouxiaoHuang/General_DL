@@ -1,3 +1,9 @@
 .DS_Store
 **/.DS_Store
 .DS_Store?
+.ipynb_checkpoints
+__pycache__/
+*.pth
+*.out
+*.log
+*.txt

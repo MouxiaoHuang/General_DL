@@ -38,15 +38,24 @@ class Classifier(nn.Module):
 
     def forward(self, img, label=None):
         """forward"""
-        feat = self.encoder(img) # [bz, num_classes], logits
+        # timm<=v0.4.12 has no 'forward_head' function
+        try:
+            if self.encoder.forward_head.__name__ == 'forward_head':
+                feats = self.encoder.forward_features(img)  # [bz, feature_size, 1, 1]
+                logits = self.encoder.forward_head(feats)   # [bz, num_classes]
+        except:
+            logits = self.encoder(img)
         if self.training:
-            return self._get_losses(feat, label)
+            return self._get_losses(logits, label)
         else:
-            pred = feat
+            pred = logits
             output = [pred]
             if self.return_label:
                 output.append(label)
             if self.return_feature:
-                raise NotImplementedError
+                try:
+                    output.append(feats[:,:,0,0])
+                except:
+                    feats = self.encoder.forward_features(img)
+                    output.append(feats[:,:,0,0])
             return output
-

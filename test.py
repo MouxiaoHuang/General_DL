@@ -42,7 +42,6 @@ def main():
     cfg.gpu_ids = range(args.gpus)
 
     os.makedirs(os.path.expanduser(os.path.abspath(cfg.exp_dir)), exist_ok=True)
-    cfg.dump(os.path.join(cfg.exp_dir, os.path.basename(args.config)))
 
     timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
     log_file = os.path.join(cfg.exp_dir, f'test_{timestamp}.log')
@@ -55,7 +54,9 @@ def main():
     dataset = build_datasets(cfg.data.test)
     print(len(dataset))
     dataloader = build_dataloaders(cfg.data.test_loader, dataset)
-    logger.info(f'Test dataset: {dataset.groups}')
+    logger.info(f'Test dataset class number: {len(dataset.groups)}')
+    if len(dataset.groups) <= 10:
+        logger.info(f'Test dataset: {dataset.groups}')
 
     runner = Runner(
         model,

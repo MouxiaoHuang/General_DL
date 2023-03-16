@@ -1,6 +1,6 @@
 exp_dir = 'exp_dir/resnet18_cifar10'
-data_root = 'path_to/CIFAR-10-images'
-total_epochs = 80
+data_root = '/home/ssd5/huangmouxiao/database/CIFAR-10-images'
+total_epochs = 200
 seed = 42
 model = dict(
     type='Classifier',
@@ -47,7 +47,7 @@ log_cfg = dict(
     filename=None,
     plog_cfg=dict(loss_types=['loss'], eval_types=['acc']))
 eval_cfg = dict(
-    interval=200,
+    interval=180,
     score_type='acc',
     tsne_cfg=dict(marks=None, filename='tsne.png'))
 optim_cfg = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0)
