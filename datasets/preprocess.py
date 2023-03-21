@@ -37,8 +37,12 @@ class Normalize(object):
                  mean=(0, 0, 0),
                  std=(1, 1, 1),
                  to_rgb=True):
-        self.mean = np.array(mean, dtype=np.float32)
-        self.std = np.array(std, dtype=np.float32)
+        if max(mean) > 1 or max(std) > 1:
+            self.mean = np.array(mean, dtype=np.float32)
+            self.std = np.array(std, dtype=np.float32)
+        else:
+            self.mean = np.array(tuple(item * 255. for item in mean), dtype=np.float32)
+            self.std = np.array(tuple(item * 255. for item in std), dtype=np.float32)
         self.to_rgb = to_rgb
 
     def __call__(self, data):

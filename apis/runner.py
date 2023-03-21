@@ -1,10 +1,8 @@
 import os
 import time
-from tkinter.messagebox import NO
 import torch
 import numpy as np
 from tqdm import tqdm
-from visualdl import LogWriter
 from .evaluator import Metric
 from .visualizer import VisualizeLog, VisualizeTSNE
 from .builder import build_optimizers, build_schedulers, build_dataloaders
@@ -61,12 +59,6 @@ class Runner(object):
             self.scheduler = build_schedulers(self.sched_cfg, self.optimizer)
             if self.log_cfg.plog_cfg is not None:
                 self.vis_log = VisualizeLog(self.exp_dir, self.log_cfg.plog_cfg)
-                self.writer_log = LogWriter(logdir=self.exp_dir)
-                hparm_cfg = self.log_cfg.plog_cfg.pop('hparm_cfg', None)
-                if hparm_cfg is not None:
-                    self.writer_log.add_hparams(
-                        hparams_dict=dict(hparm_cfg),
-                        metrics_list=self.log_cfg.plog_cfg.eval_types + self.log_cfg.plog_cfg.loss_types)
 
         self._score = np.zeros((self.check_cfg.pop('save_topk', 1),), dtype=np.float32)
         self._init_model(self.check_cfg.resume_from, self.check_cfg.load_from)
@@ -88,22 +80,22 @@ class Runner(object):
         self._lr = self.optimizer.param_groups[0]['lr']
 
     def _log_infos(self, output):
-        """log training info"""
+        """log training / validation info"""
         eta = (self._total_iter - self._iter) * self._iter_time / self.log_cfg.interval
         mins = '{:2d}'.format(int((eta % 3600) / 60))
         hours = '{:2d}'.format(int(eta / 3600))
         lr = '{:6f}'.format(self._lr)
         self._iter_time = 0
         info = f'Epoch: {self._epoch}, Iter: {self._iter}, ETA: {hours}h{mins}min, Lr: {lr},'
-        self.writer_log.add_scalar(tag='lr', step=self._iter, value=self._lr)
         for k, v in output.items():
-            if self.log_cfg.plog_cfg is not None and k in self.log_cfg.plog_cfg.loss_types:
-                self.writer_log.add_scalar(tag=k, step=self._iter, value=v.mean().detach().item())
-            if k == 'loss':
+            if k == 'loss' or k == 'val_loss':
                 continue
             loss = '{:.5f}'.format(v.mean().detach().item())
             info += f' {k}: {loss},'
-        info += ' loss: {:.5f}'.format(output['loss'].mean().detach().item())
+        try:
+            info += ' val_loss: {:.5f}'.format(output['val_loss'].mean().detach().item())
+        except:
+            info += ' loss: {:.5f}'.format(output['loss'].mean().detach().item())
         self.logger.info(info)
 
     def _init_model(self, resume_from=None, load_from=None):
@@ -191,7 +183,8 @@ class Runner(object):
                 self._log_infos(output)
 
             if self._iter % self.eval_cfg.interval == 0:
-                score = self.val()
+                score, val_loss = self.val()
+                self._log_infos(val_loss)
                 self._save_model(score)
                 self._save_model(filename='latest.pth')
 
@@ -201,28 +194,20 @@ class Runner(object):
     @torch.no_grad()
     def val(self):
         """val method"""
-        feats = list()
         preds = list()
         labels = list()
+        val_loss = dict(val_loss=0.0)
         self.model.eval()
         for data in tqdm(self.val_dataloader):
-            output = self.model(**data)
+            output = self.model(**data) # [logits, labels, losses, feats (optional)]
             preds.append(output[0].argmax(dim=-1).detach().cpu().numpy())
             labels.append(output[1].detach().cpu().numpy()[:, 0])
-            if len(output) > 2:
-                feats.append(output[2].detach().cpu().numpy())
+            val_loss['val_loss'] = (val_loss['val_loss'] + output[2]['loss'].mean())/2.0
         self.model.train()
         preds = np.concatenate(preds)
         labels = np.concatenate(labels)
         score, eval_dict = self.metric(preds, labels)
-        if len(feats) > 0:
-            feats = np.concatenate(feats)
-            self.writer_log.add_embeddings(tag='feature', mat=feats, metadata=labels.astype(str))
-        if self.log_cfg.plog_cfg is not None:
-            for k, v in eval_dict.items():
-                if k in self.log_cfg.plog_cfg.eval_types:
-                    self.writer_log.add_scalar(tag=k, step=self._iter, value=v)
-        return score
+        return score, val_loss
 
     @torch.no_grad()
     def test(self, dataloader, filename=None, log_info=True):
@@ -232,11 +217,11 @@ class Runner(object):
         labels = list()
         self.model.eval()
         for data in tqdm(dataloader):
-            output = self.model(data['img'], data['label'])
+            output = self.model(data['img'], data['label']) # [logits, labels, losses, feats (optional)]
             preds.append(output[0].argmax(dim=-1).detach().cpu().numpy())
             labels.append(output[1].detach().cpu().numpy()[:, 0])
-            if len(output) > 2:
-                feats.append(output[2].detach().cpu().numpy())
+            if len(output) > 3:
+                feats.append(output[-1].detach().cpu().numpy())
         self.model.train()
         preds = np.concatenate(preds)
         labels = np.concatenate(labels)

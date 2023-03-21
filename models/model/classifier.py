@@ -28,12 +28,22 @@ class Classifier(nn.Module):
 
         self.encoder = encoders(encoder)
 
-        self.cls_loss = nn.CrossEntropyLoss()
+        self.cls_loss_val = nn.CrossEntropyLoss()
 
-    def _get_losses(self, feats, label):
-        """calculate training losses"""
-        loss_cls = self.cls_loss(feats, label[:, 0]).unsqueeze(0) * self.train_cfg['w_cls']
-        loss = loss_cls
+        try:
+            if self.train_cfg['label_smoothing'] > 0:
+                from models.losses import LabelSmoothLoss
+                self.cls_loss = LabelSmoothLoss(smoothing=self.train_cfg['label_smoothing'])
+        except:
+            self.cls_loss = nn.CrossEntropyLoss()
+
+    def _get_losses(self, logits, label):
+        """calculate training / inference losses"""
+        if self.training:
+            loss_cls = self.cls_loss(logits, label[:, 0]).unsqueeze(0)
+        else:
+            loss_cls = self.cls_loss_val(logits, label[:, 0]).unsqueeze(0)
+        loss = loss_cls * self.train_cfg['w_cls']
         return dict(loss_cls=loss_cls, loss=loss)
 
     def forward(self, img, label=None):
@@ -47,11 +57,11 @@ class Classifier(nn.Module):
             logits = self.encoder(img)
         if self.training:
             return self._get_losses(logits, label)
-        else:
-            pred = logits
-            output = [pred]
+        else:            
+            output = [logits]
             if self.return_label:
                 output.append(label)
+                output.append(self._get_losses(logits, label))
             if self.return_feature:
                 try:
                     output.append(feats[:,:,0,0])

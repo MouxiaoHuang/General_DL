@@ -2,11 +2,11 @@
 
 ***A general deep learning project that can be easily transferred to other specific tasks.***
 
-#### Basic environment:
+### Basic environment:
 ---
 `torch` and `timm`
 
-#### Structure of the Repository
+### Structure of the repository
 ---
 - `apis/`
   - `builder.py`: Builds datasets, dataloaders, models, optimizers, schedulers, and more.
@@ -33,9 +33,9 @@
 - `run.sh` and `run_test.sh`: Scripts for experiments.
 - `exp_dir/`: Experimental directory including configuration files, logs, checkpoints, and more.
 
-#### Instruction for usage
+### Instruction for usage
 ---
-- Prepare dataset
+- **Prepare dataset**
   ```python
   data_root/
     - train/
@@ -43,18 +43,21 @@
     - test/
     - {train, val, test}_label.txt (format: relative_path label)
   ```
-- Training
+- **Training**
   ```python
   sh run.sh
   # or
   nohup sh run.sh>train.out 2>&1 &
   ```
   Training logs and checkpoints will be saved in `./exp_dir/resnet18_cifar10`
-- Inference
+- **Inference**
   ```python
   sh run_test.sh
   # or
   nohup sh run_test.sh>test.out 2>&1 &
   ```
   Inference logs and results will be saved in `./exp_dir/resnet18_cifar10`
-- Extensions can be added to the existing structure as needed.
+- **Visualization**
+  Visualize loss, accuracy, TSNE, etc.
+
+### Extensions can be added to the existing codebase as needed

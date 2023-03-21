@@ -51,6 +51,7 @@ class VisualizeTSNE(object):
                 ax.scatter(posi[:, 0], posi[:, 1], **self.marks[i])
         ax.legend(prop=dict(size=14))
         plt.tick_params(labelsize=15)
+        plt.title('TSNE', fontsize=20)
         plt.savefig(os.path.join(self.exp_dir, self.filename))
 
 
@@ -87,10 +88,13 @@ class VisualizeLog(object):
             lines = f.readlines()
         iter = 0
         evals = list()
+        lrs = list()
         losses = list()
+        val_losses = list()
         loss_names = []
+        val_loss_names = []
         for line in lines:
-            if 'INFO' in line and 'loss:' in line:
+            if 'INFO' in line and 'loss:' in line and 'val_loss' not in line:
                 infos = re.split(': |, ', re.split('min, ', line)[1])
 
                 if iter == 0:
@@ -102,12 +106,23 @@ class VisualizeLog(object):
                 losses.append(loss)
                 iter += 20
 
+            elif 'INFO' in line and 'val_loss' in line:
+                infos = re.split(': |, ', re.split('min, ', line)[1])
+
+                iter = int(re.findall(r"(?<=Iter: )\d+", line)[0])
+                val_loss_names = infos[0::2]
+
+                loss = list(map(float, infos[1::2]))
+                loss.append(iter)
+                val_losses.append(loss)
+                iter += 20
+
             elif '* >>' in line and 'acc' not in line:
                 res = list(map(float, re.findall(r"\d+\.?\d*", line)))
                 res.append(iter)
                 evals.append(res)
 
-        return evals, losses, loss_names
+        return evals, losses, loss_names, val_losses, val_loss_names
 
     def __call__(self, log_file):
         """call function
@@ -117,15 +132,29 @@ class VisualizeLog(object):
         """
         name = os.path.basename(log_file).split('.')[0]
 
-        evals, losses, loss_names = self._parse_log(log_file)
+        evals, losses, loss_names, val_losses, val_loss_names = self._parse_log(log_file)
 
         evals = np.array(evals)
         losses = np.array(losses)
-        if len(evals) == 0 or evals.shape[1] != 10:
-            return 
+        val_losses = np.array(val_losses)
 
+        if len(evals) == 0 or evals.shape[1] != 10:
+            return
+
+        # plot learning rate
         plt.figure(num=0, figsize=self.figsize)
-        plt.title('Evaluation')
+        plt.switch_backend('agg')
+        plt.figure().set_figwidth(8)
+        plt.plot(losses[:, -1], losses[:, 0], self.colors[0], label='learning rate')
+        plt.grid(ls='--')
+        plt.legend(loc='upper right')
+        plt.ylabel('Learning Rate')
+        plt.xlabel('Iters')
+        plt.title('Learning Rate')
+        plt.savefig(os.path.join(self.exp_dir, f'{name}_lr.png'))
+
+        # plot evaluation metrics
+        plt.figure(num=1, figsize=self.figsize)
         plt.switch_backend('agg')
         for i, k in enumerate(self.eval_names):
             if k not in self.eval_types:
@@ -135,19 +164,23 @@ class VisualizeLog(object):
         plt.legend(loc='lower right')
         plt.ylabel('Eval Score')
         plt.xlabel('Iters')
+        plt.title('Evaluation')
         plt.savefig(os.path.join(self.exp_dir, f'{name}_eval.png'))
 
+        # plot losses
         if self.loss_types is None:
             return
-
-        plt.figure(num=1, figsize=self.figsize)
-        plt.title('Loss')
+        plt.figure(num=2, figsize=self.figsize)
         plt.switch_backend('agg')
         for i, k in enumerate(loss_names):
             if k in self.loss_types:
                 plt.plot(losses[:, -1], losses[:, i], self.colors[i % 6], label=k)
+        for i, k in enumerate(val_loss_names):
+            if k in self.loss_types:
+                plt.plot(val_losses[:, -1], val_losses[:, i], self.colors[i % 6], label=k)
         plt.grid(ls='--')
         plt.legend(loc='upper right')
         plt.ylabel('Loss')
         plt.xlabel('Iters')
+        plt.title('Loss')
         plt.savefig(os.path.join(self.exp_dir, f'{name}_loss.png'))
