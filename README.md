@@ -60,4 +60,4 @@
 - **Visualization**
   Visualize loss, accuracy, TSNE, etc.
 
-### Extensions can be added to the existing codebase as needed
+### Extensions can be added to the existing codebase as needed 
